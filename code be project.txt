@@ -1,0 +1,152 @@
+#define BLYNK_PRINT Serial  
+#include <SPI.h> 
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <SimpleTimer.h>
+#include <DHT.h>
+#include <WiFiClient.h>;
+#include <ThingSpeak.h>;
+#define BLYNK_PRINT Serial
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 1
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+
+//blynk
+char auth[] = "BL6PB5eysjs-Bfzc4ptPk6_4cesG1dV2"; 
+char ssid[] = "vanitalalwani"; 
+char pass[] = "krishlalwani";
+ 
+//things speak
+const char* ssid1 = "vanitalalwani"; //Your Network SSID
+const char* password1 = "krishlalwani"; //Your Network Password
+WiFiClient client;
+unsigned long myChannelNumber = 977297; //Your Channel Number (Without Brackets)
+const char * myWriteAPIKey = "T9DXE8ELNVGKU63Y"; //Your Write API Key
+const char * myReadAPIKey = "JAFOODXSLVETMCLM"; //read apikey
+unsigned long Field1 = 1; //field number
+unsigned long Field2 = 2;
+unsigned long Field4 = 4;
+
+
+
+#define DHTPIN 1    
+#define DHTTYPE DHT11     
+DHT dht(DHTPIN, DHTTYPE);
+SimpleTimer timer;
+int relay = 0;
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+ 
+  
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+ 
+  Blynk.virtualWrite(V5, h);  //V5 is for Humidity
+  ThingSpeak.writeField(myChannelNumber,Field2,h,myWriteAPIKey); //Update in ThingSpeak
+ 
+  Blynk.virtualWrite(V6, t);  //V6 is for Temperature
+  ThingSpeak.writeField(myChannelNumber,Field1,t,myWriteAPIKey); //Update in ThingSpeak
+
+}
+void setup()
+{
+  Serial.begin(9600);
+delay(10);
+// Connect to WiFi network
+WiFi.begin(ssid1, password1); 
+ThingSpeak.begin(client);
+
+  
+ 
+  Blynk.begin(auth, ssid, pass);
+   
+  dht.begin();
+  timer.setInterval(1000L, sendSensor);
+  sensors.begin();
+  Serial.write("Inside Setup");
+  
+   //Serial.begin(9600);
+  //Serial.begin(115200);
+  //Blynk.begin(auth, ssid, pass);
+   
+
+  //Serial.begin(220800);
+//Blynk.begin(auth, ssid, pass);
+//light.begin();
+  
+ // Serial.begin(359900);
+//Blynk.begin(auth, ssid, pass);
+//pump.begin();
+
+
+}
+int sensor=0;
+void sendTemps()
+{
+sensor=analogRead(A0);
+sensors.requestTemperatures();
+float temp = sensors.getTempCByIndex(0); //things speak code
+ThingSpeak.writeField(myChannelNumber,Field4,sensor, myWriteAPIKey); //Update in ThingSpeak
+ 
+delay(100);
+Serial.println(temp);
+Serial.println(sensor);
+//Blynk.virtualWrite(V1, temp);
+Blynk.virtualWrite(V2,sensor);
+delay(1000);
+}
+void loop()
+{
+  Serial.write("Loop.....");
+  Blynk.run(); 
+  timer.run(); 
+  sendTemps();
+  //light.turnOff();
+  //light.turnOn();
+  //bool isLightOn= light.getState();
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print("Connecting to ");
+    Serial.print(ssid1);
+    Serial.println(" ....");
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      WiFi.begin(ssid1, password1);
+      delay(5000);
+    }
+    Serial.println("Connected to Wi-Fi Succesfully.");
+  }
+
+  long temp1 = ThingSpeak.readLongField(myChannelNumber, Field1, myReadAPIKey);//taking data from ts
+  long statusCode = ThingSpeak.getLastReadStatus();
+  if(statusCode==1){
+    Blynk.email("beprojectbgv2@gmail.com","ESP8266 Alert","It's time to irrigate");
+    Blynk.notify("It's time to irrigate");}
+  Serial.print(temp1);//not needed right now
+  
+  long temp2 = ThingSpeak.readLongField(myChannelNumber, Field2, myReadAPIKey);//not needed right now
+  statusCode = ThingSpeak.getLastReadStatus();
+  Serial.print(temp2);
+
+  long temp3 = ThingSpeak.readLongField(myChannelNumber, Field4, myReadAPIKey);//not needed right now
+  statusCode = ThingSpeak.getLastReadStatus();
+}
+
+// Relay Module - Test Code
+    // The relay will turn on and off for 500ms (0.5 sec)
+    //relayModule.on();       // 1. turns on
+    //delay(500);             // 2. waits 500 milliseconds (0.5 sec). Change the value in the brackets (500) for a longer or shorter delay in milliseconds.
+    //relayModule.off();      // 3. turns off.
+    //delay(500);             // 4. waits 500 milliseconds (0.5 sec). Change the value in the brackets (500) for a longer or shorter delay in milliseconds.
+
+    //waterpump.on(); // 1. turns on
+    //delay(2000);       // 2. waits 500 milliseconds (0.5 sec).
+    //waterpump.off();// 3. turns off
+    //delay(2000);       // 4. waits 500 milliseconds (0.5 sec).
