@@ -6,3 +6,6 @@ This system considers Atmospheric Temperature, Humidity and Soil Moisture to dec
 The system uses a Mobile Application to control the water motor remotely.
 The accuracy achieved was 86%.
 Technologies used: Python, Android, IoT.
+pred.py - main python backend, imports forecast.py
+forecast.py - collects weather forecast data
+code be project.txt - c++ code for the IoT system
